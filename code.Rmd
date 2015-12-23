@@ -1,0 +1,67 @@
+---
+title: "Description"
+author: "O.Dvortsova"
+date: "23 December 2015"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+The goal of the assignment was to build the prediction model for "classe" variable. The model should be validated. Finally, using the model the prediction of the provided test sets should be performed. Data was provided from this source: http://groupware.les.inf.puc-rio.br/har.
+Setting seed for reproducability purposes 
+
+```{r}
+set.seed(4566)
+```
+
+Downloading data
+```{r}
+getwd()
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile="./train.csv")
+train_data<-read.csv("./train.csv")
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",destfile="./test.csv")
+validation_data<-read.csv("./test.csv")
+```
+Deleting empty and NA rows, since data has strange half empty variables 
+```{r}
+train_data[train_data == ""] <- NA                                                   
+g=colnames(train_data)[colSums(is.na(train_data)) == 0]
+reduced_train<-train_data[,g]
+dim(reduced_train)
+```
+
+Building train and test sets
+```{r}
+library(caret)
+inTrain <- createDataPartition(y=reduced_train$classe,
+                               p=0.75, list=FALSE)
+training <- reduced_train[inTrain,7:60]
+testing <- reduced_train[-inTrain,7:60]
+dim(training)
+dim(testing)
+```
+Fitting decision trees algorithm
+```{r}
+library(rpart)
+library(rattle)
+library(rpart.plot)
+modelFit <- rpart(classe ~ ., data=training, method="class")
+```
+Example of the visualisation of the decision tree
+```{r,fig.width=9, fig.height=8, echo=FALSE}
+fancyRpartPlot(modelFit)
+```
+
+
+Out-sample testing of the model
+```{r}
+test_prediction <- predict(modelFit, testing, type = "class")
+confusionMatrix(test_prediction, testing$classe)
+```
+Seperate testing data set prediction
+```{r}
+validation_pred <- predict(modelFit, validation_data, type = "class")
+validation_pred
+```
+
+
